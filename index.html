@@ -3,18 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Friend Bingo</title>
+<title>Wedding Survival Bingo</title>
+<meta name="description" content="Smile for the photos. Mark the card. It's not about the tablecloth.">
+<meta property="og:title" content="Wedding Survival Bingo">
+<meta property="og:description" content="Smile for the photos. Mark the card. It's not about the tablecloth.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌵</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
 <style>
+  /* Southwest palette: terra cotta + turquoise, with sage, deep blue and sunset gold */
   :root {
-    --bg: #fff7ec;
-    --card: #ffffff;
-    --ink: #2b2140;
-    --muted: #7a6f8f;
-    --line: #2b2140;
-    --mark: #ff5d8f;
+    --bg: #f5e6d0;
+    --card: #fffaf2;
+    --ink: #3d2417;
+    --muted: #86634e;
+    --line: #3d2417;
+    --mark: #b8492a;
     --mark-ink: #ffffff;
-    --win: #ffd23f;
-    --free: #8fd3c8;
+    --win: #e9a53b;
+    --free: #3fb3a8;
+    --turquoise: #1f8a80;
+    --sage: #7c9a5e;
+    --blue: #2f5d8a;
   }
   * { box-sizing: border-box; }
   body {
@@ -29,11 +40,34 @@
     padding: 24px 16px 40px;
   }
   h1 {
-    margin: 0 0 4px;
-    font-size: clamp(2rem, 8vw, 3.2rem);
-    letter-spacing: 0.08em;
+    margin: 2px 0 6px;
+    font-family: "Rye", Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(2.4rem, 11vw, 3.6rem);
+    letter-spacing: 0.06em;
+    line-height: 1;
   }
-  .sub { margin: 0 0 20px; color: var(--muted); text-align: center; }
+  /* little southwest zigzag under the tagline */
+  .band {
+    width: 100%;
+    max-width: 560px;
+    height: 10px;
+    margin: 0 0 18px;
+    background:
+      linear-gradient(135deg, var(--mark) 25%, transparent 25%) -10px 0 / 20px 10px repeat-x,
+      linear-gradient(225deg, var(--mark) 25%, transparent 25%) -10px 0 / 20px 10px repeat-x,
+      linear-gradient(315deg, var(--free) 25%, transparent 25%) 0 0 / 20px 10px repeat-x,
+      linear-gradient(45deg, var(--free) 25%, transparent 25%) 0 0 / 20px 10px repeat-x;
+  }
+  .eyebrow {
+    margin: 0;
+    color: var(--mark);
+    font-weight: 800;
+    font-size: clamp(0.85rem, 3.5vw, 1rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .sub { margin: 0 0 14px; color: var(--muted); text-align: center; }
   .card {
     width: 100%;
     max-width: 560px;
@@ -50,10 +84,16 @@
   }
   .letters div {
     text-align: center;
-    font-weight: 800;
-    font-size: clamp(1.2rem, 5vw, 1.8rem);
-    padding: 4px 0 8px;
+    font-family: "Rye", Georgia, serif;
+    font-size: clamp(1.3rem, 6vw, 1.9rem);
+    padding: 4px 0 6px;
   }
+  /* B I N G O alternate through the wedding colors */
+  .letters div:nth-child(1) { color: var(--mark); }
+  .letters div:nth-child(2) { color: var(--turquoise); }
+  .letters div:nth-child(3) { color: #c4861c; }
+  .letters div:nth-child(4) { color: var(--sage); }
+  .letters div:nth-child(5) { color: var(--blue); }
   .cell {
     aspect-ratio: 1;
     border: 2px solid var(--line);
@@ -123,7 +163,8 @@
   .status {
     min-height: 2em;
     margin: 18px 0 8px;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
+    text-wrap: balance;
     font-weight: 800;
     text-align: center;
   }
@@ -150,8 +191,10 @@
 </style>
 </head>
 <body>
+  <p class="eyebrow">Wedding Survival</p>
   <h1>BINGO</h1>
-  <p class="sub">A very official card for a very specific friend</p>
+  <p class="sub">Smile for the photos. Mark the card.<br>It's not about the tablecloth.</p>
+  <div class="band" aria-hidden="true"></div>
 
   <div class="card">
     <div class="letters"><div>B</div><div>I</div><div>N</div><div>G</div><div>O</div></div>
@@ -342,9 +385,9 @@
       b.classList.toggle("win", winCells.has(i));
     });
 
-    if (marked.size === 25) statusEl.textContent = "🏆 BLACKOUT!! 🏆";
-    else if (winning.length > 1) statusEl.textContent = `🎉 ${winning.length}× BINGO! 🎉`;
-    else if (winning.length === 1) statusEl.textContent = "🎉 BINGO! 🎉";
+    if (marked.size === 25) statusEl.textContent = "🏆 BLACKOUT. You survived the wedding.";
+    else if (winning.length > 1) statusEl.textContent = `🍾 ${winning.length}× BINGO! Someone get Caree a refill.`;
+    else if (winning.length === 1) statusEl.textContent = "🥂 BINGO! Go find that champagne.";
     else statusEl.textContent = "";
 
     if (prevWins !== -1 && winning.length > prevWins) confetti();
@@ -352,14 +395,14 @@
   }
 
   document.getElementById("reset").addEventListener("click", () => {
-    if (!confirm("Clear the whole card?")) return;
+    if (!confirm("Clear the whole card and start fresh?")) return;
     marked = new Set([12]);
     save();
     render();
   });
 
   function confetti() {
-    const colors = ["#ff5d8f", "#ffd23f", "#8fd3c8", "#7b6cf6", "#ff9f43"];
+    const colors = ["#b8492a", "#3fb3a8", "#e9a53b", "#7c9a5e", "#2f5d8a", "#e07a3f"];
     for (let i = 0; i < 80; i++) {
       const c = document.createElement("div");
       c.className = "confetti";
