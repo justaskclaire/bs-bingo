@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wedding Survival Bingo</title>
-<meta name="description" content="Smile for the photos. Mark the card. It's not about the tablecloth.">
+<meta name="description" content="Turquoise, terra cotta, and trauma. Yeehaw, I guess.">
 <meta property="og:title" content="Wedding Survival Bingo">
-<meta property="og:description" content="Smile for the photos. Mark the card. It's not about the tablecloth.">
+<meta property="og:description" content="Turquoise, terra cotta, and trauma. Yeehaw, I guess.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌵</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,7 +67,14 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
   }
-  .sub { margin: 0 0 14px; color: var(--muted); text-align: center; }
+  .sub { margin: 0; color: var(--ink); font-size: 1.05rem; font-weight: 600; text-align: center; }
+  .subsub {
+    margin: 2px 0 14px;
+    color: var(--turquoise);
+    font-style: italic;
+    font-size: 0.9rem;
+    text-align: center;
+  }
   .card {
     width: 100%;
     max-width: 560px;
@@ -168,6 +175,14 @@
     font-weight: 800;
     text-align: center;
   }
+  .footer {
+    margin-top: auto;
+    padding-top: 36px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-style: italic;
+    text-align: center;
+  }
   button.reset {
     font: inherit;
     background: none;
@@ -193,7 +208,8 @@
 <body>
   <p class="eyebrow">Wedding Survival</p>
   <h1>BINGO</h1>
-  <p class="sub">Smile for the photos. Mark the card.<br>It's not about the tablecloth.</p>
+  <p class="sub">Turquoise, terra cotta, and trauma.</p>
+  <p class="subsub">Yeehaw, I guess.</p>
   <div class="band" aria-hidden="true"></div>
 
   <div class="card">
@@ -204,6 +220,7 @@
 
   <div class="status" id="status"></div>
   <button class="reset" id="reset">Reset card</button>
+  <footer class="footer">Because you deserve to win something today. ♡</footer>
 
 <script>
   // ✏️ Edit these! 24 squares, in reading order (left→right, top→bottom).
