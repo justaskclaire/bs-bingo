@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Friend Bingo</title>
+<style>
+  :root {
+    --bg: #fff7ec;
+    --card: #ffffff;
+    --ink: #2b2140;
+    --muted: #7a6f8f;
+    --line: #2b2140;
+    --mark: #ff5d8f;
+    --mark-ink: #ffffff;
+    --win: #ffd23f;
+    --free: #8fd3c8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+  h1 {
+    margin: 0 0 4px;
+    font-size: clamp(2rem, 8vw, 3.2rem);
+    letter-spacing: 0.08em;
+  }
+  .sub { margin: 0 0 20px; color: var(--muted); text-align: center; }
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: var(--card);
+    border: 3px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--line);
+    padding: 10px;
+  }
+  .letters, .grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .letters div {
+    text-align: center;
+    font-weight: 800;
+    font-size: clamp(1.2rem, 5vw, 1.8rem);
+    padding: 4px 0 8px;
+  }
+  .cell {
+    aspect-ratio: 1;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--ink);
+    font: inherit;
+    font-size: clamp(0.6rem, 2.6vw, 0.9rem);
+    line-height: 1.15;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow-wrap: anywhere;
+    transition: transform 0.08s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cell:active { transform: scale(0.95); }
+  .cell.free { background: var(--free); font-weight: 800; cursor: default; }
+  .cell.marked { background: var(--mark); color: var(--mark-ink); font-weight: 700; }
+  .cell.win { box-shadow: inset 0 0 0 4px var(--win); }
+  .status {
+    min-height: 2em;
+    margin: 18px 0 8px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    text-align: center;
+  }
+  button.reset {
+    font: inherit;
+    background: none;
+    border: 2px solid var(--muted);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 6px 16px;
+    cursor: pointer;
+  }
+  .confetti {
+    position: fixed;
+    top: -20px;
+    width: 10px;
+    height: 14px;
+    pointer-events: none;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+</style>
+</head>
+<body>
+  <h1>BINGO</h1>
+  <p class="sub">A very official card for a very specific friend</p>
+
+  <div class="card">
+    <div class="letters"><div>B</div><div>I</div><div>N</div><div>G</div><div>O</div></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="status" id="status"></div>
+  <button class="reset" id="reset">Reset card</button>
+
+<script>
+  // ✏️ Edit these! 24 squares, in reading order (left→right, top→bottom).
+  // The center square is the FREE space and gets inserted automatically.
+  const SQUARES = [
+    "Says “one more episode” and watches four",
+    "Loses phone while holding phone",
+    "Orders the same thing again",
+    "Mentions their cat unprompted",
+    "Is 10 min late, apologizes for 5",
+    "Starts a new hobby",
+    "Abandons said hobby",
+    "Sends a meme at 2am",
+    "Narrates a dream nobody asked about",
+    "Buys a plant",
+    "Forgets the plant exists",
+    "“I'm not even hungry” → eats",
+    "Laughs at own joke before finishing it",
+    "Has a strong opinion about a font",
+    "Brings snacks for everyone",
+    "Says “wait, what were we talking about?”",
+    "Reorganizes a shelf for fun",
+    "Wears the same hoodie 3 days running",
+    "Starts a sentence with “OK so hear me out”",
+    "Cries at an ad",
+    "Has 47 browser tabs open",
+    "Waves back at someone who wasn't waving",
+    "Sings the wrong lyrics confidently",
+    "Is the best friend ever (obviously)",
+  ];
+  const FREE_TEXT = "FREE ★";
+  const STORAGE_KEY = "friend-bingo-v1";
+
+  const grid = document.getElementById("grid");
+  const statusEl = document.getElementById("status");
+
+  const cells = [...SQUARES.slice(0, 12), null, ...SQUARES.slice(12, 24)];
+
+  let marked = new Set([12]);
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    saved.forEach(i => marked.add(i));
+  } catch {}
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...marked])); } catch {}
+  }
+
+  const LINES = [];
+  for (let i = 0; i < 5; i++) {
+    LINES.push([0,1,2,3,4].map(j => i * 5 + j)); // rows
+    LINES.push([0,1,2,3,4].map(j => j * 5 + i)); // cols
+  }
+  LINES.push([0, 6, 12, 18, 24], [4, 8, 12, 16, 20]);
+
+  let prevWins = -1;
+
+  function render() {
+    grid.innerHTML = "";
+    const winning = LINES.filter(l => l.every(i => marked.has(i)));
+    const winCells = new Set(winning.flat());
+
+    cells.forEach((text, i) => {
+      const b = document.createElement("button");
+      b.className = "cell";
+      if (text === null) {
+        b.classList.add("free");
+        b.textContent = FREE_TEXT;
+      } else {
+        b.textContent = text;
+        if (marked.has(i)) b.classList.add("marked");
+        b.addEventListener("click", () => toggle(i));
+      }
+      if (winCells.has(i)) b.classList.add("win");
+      grid.appendChild(b);
+    });
+
+    if (marked.size === 25) statusEl.textContent = "🏆 BLACKOUT!! 🏆";
+    else if (winning.length > 1) statusEl.textContent = `🎉 ${winning.length}× BINGO! 🎉`;
+    else if (winning.length === 1) statusEl.textContent = "🎉 BINGO! 🎉";
+    else statusEl.textContent = "";
+
+    if (prevWins !== -1 && winning.length > prevWins) confetti();
+    prevWins = winning.length;
+  }
+
+  function toggle(i) {
+    marked.has(i) ? marked.delete(i) : marked.add(i);
+    save();
+    render();
+  }
+
+  document.getElementById("reset").addEventListener("click", () => {
+    if (!confirm("Clear the whole card?")) return;
+    marked = new Set([12]);
+    save();
+    render();
+  });
+
+  function confetti() {
+    const colors = ["#ff5d8f", "#ffd23f", "#8fd3c8", "#7b6cf6", "#ff9f43"];
+    for (let i = 0; i < 80; i++) {
+      const c = document.createElement("div");
+      c.className = "confetti";
+      c.style.left = Math.random() * 100 + "vw";
+      c.style.background = colors[i % colors.length];
+      c.style.animationDuration = 1.5 + Math.random() * 1.5 + "s";
+      c.style.animationDelay = Math.random() * 0.3 + "s";
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 3500);
+    }
+  }
+
+  render();
+</script>
+</body>
+</html>
