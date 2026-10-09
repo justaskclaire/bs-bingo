@@ -61,22 +61,63 @@
     background: var(--card);
     color: var(--ink);
     font: inherit;
-    font-size: clamp(0.6rem, 2.6vw, 0.9rem);
-    line-height: 1.15;
+    font-size: 15px; /* starting size; fitText() shrinks per square */
+    line-height: 1.12;
     padding: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    overflow-wrap: anywhere;
+    hyphens: auto;
+    -webkit-hyphens: auto;
     transition: transform 0.08s, background 0.15s;
     -webkit-tap-highlight-color: transparent;
+    /* no text selection / iOS callout menu while long-pressing */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+    position: relative;
+    z-index: 0;
+    overflow: hidden;
   }
   .cell:active { transform: scale(0.95); }
   .cell.free { background: var(--free); font-weight: 800; cursor: default; }
-  .cell.marked { background: var(--mark); color: var(--mark-ink); font-weight: 700; }
+  .cell.breaky { overflow-wrap: anywhere; }
+  /* phones: tighter spacing and taller squares, so long phrases stay readable */
+  @media (max-width: 520px) {
+    .card { padding: 6px; border-radius: 12px; }
+    .letters, .grid { gap: 4px; }
+    .cell { aspect-ratio: 4 / 5; padding: 3px; border-radius: 8px; }
+  }
+  .cell.marked { background: var(--mark); color: var(--mark-ink); }
   .cell.win { box-shadow: inset 0 0 0 4px var(--win); }
+  /* fill that sweeps across while holding to uncheck */
+  .cell.holding::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--card);
+    transform-origin: left;
+    animation: hold var(--hold-ms) linear forwards;
+  }
+  .cell.holding { color: var(--ink); }
+  @keyframes hold { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .cell.nudge { animation: nudge 0.3s; }
+  @keyframes nudge {
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+  .hint {
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+    transition: color 0.2s;
+  }
+  .hint.flash { color: var(--mark); font-weight: 700; }
   .status {
     min-height: 2em;
     margin: 18px 0 8px;
@@ -114,6 +155,7 @@
     <div class="letters"><div>B</div><div>I</div><div>N</div><div>G</div><div>O</div></div>
     <div class="grid" id="grid"></div>
   </div>
+  <p class="hint" id="hint">Tap to check · press &amp; hold to uncheck</p>
 
   <div class="status" id="status"></div>
   <button class="reset" id="reset">Reset card</button>
@@ -121,34 +163,40 @@
 <script>
   // ✏️ Edit these! 24 squares, in reading order (left→right, top→bottom).
   // The center square is the FREE space and gets inserted automatically.
+  // \u00AD is an invisible "break here if needed" hyphen for long words on small phones.
   const SQUARES = [
-    "Says “one more episode” and watches four",
-    "Loses phone while holding phone",
-    "Orders the same thing again",
-    "Mentions their cat unprompted",
-    "Is 10 min late, apologizes for 5",
-    "Starts a new hobby",
-    "Abandons said hobby",
-    "Sends a meme at 2am",
-    "Narrates a dream nobody asked about",
-    "Buys a plant",
-    "Forgets the plant exists",
-    "“I'm not even hungry” → eats",
-    "Laughs at own joke before finishing it",
-    "Has a strong opinion about a font",
-    "Brings snacks for everyone",
-    "Says “wait, what were we talking about?”",
-    "Reorganizes a shelf for fun",
-    "Wears the same hoodie 3 days running",
-    "Starts a sentence with “OK so hear me out”",
-    "Cries at an ad",
-    "Has 47 browser tabs open",
-    "Waves back at someone who wasn't waving",
-    "Sings the wrong lyrics confidently",
-    "Is the best friend ever (obviously)",
+    // row 1
+    "Someone asks about babies",
+    "Barbara's tablecloth meltdown",
+    "Drunk Grooms\u00ADman",
+    "“I'm autistic too, actually!”",
+    "Cold catered food",
+    // row 2
+    "Caree is over\u00ADstimulated",
+    "Vaguely racist Mexican comment",
+    "Barbara frowns at a sweet moment",
+    "Checked Out Groom ™️",
+    "A brat goes for the cake early",
+    // row 3 (FREE goes in the middle)
+    "Barbara mad about the guest list",
+    "Weird Autism Mom comment",
+    "Someone whispers “Mexican”",
+    "Bride freaks out about scheduling",
+    // row 4
+    "Miss the champagne for brat duty",
+    "Drunk Brides\u00ADmaid",
+    "Brent talks shit about DIL's fam",
+    "“Wait, one more picture!”",
+    "Barbara hijacks convo to lecture",
+    // row 5
+    "The Young\u00ADman Eyeroll",
+    "Cost of something mentioned",
+    "Caree says “fuck” near an 80yo",
+    "Autism question → podcast factoid",
+    "“We see the grandkids ALL the time!”",
   ];
-  const FREE_TEXT = "FREE ★";
-  const STORAGE_KEY = "friend-bingo-v1";
+  const FREE_TEXT = "PASSIVE AGGRES\u00ADSIVE FREE SPACE";
+  const STORAGE_KEY = "wedding-bingo-v1";
 
   const grid = document.getElementById("grid");
   const statusEl = document.getElementById("status");
@@ -172,26 +220,108 @@
   }
   LINES.push([0, 6, 12, 18, 24], [4, 8, 12, 16, 20]);
 
+  // How long you have to hold a checked square to uncheck it.
+  const HOLD_MS = 600;
+  document.documentElement.style.setProperty("--hold-ms", HOLD_MS + "ms");
+
+  const hintEl = document.getElementById("hint");
+  let hintTimer;
+  function flashHint() {
+    hintEl.classList.add("flash");
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => hintEl.classList.remove("flash"), 1200);
+  }
+
+  // Build the buttons once; render() only updates their classes.
+  const buttons = cells.map((text, i) => {
+    const b = document.createElement("button");
+    b.className = "cell";
+    grid.appendChild(b);
+    if (text === null) {
+      b.classList.add("free");
+      b.innerHTML = "<span></span>";
+      b.firstChild.textContent = FREE_TEXT;
+      return b;
+    }
+    b.innerHTML = "<span></span>";
+    b.firstChild.textContent = text;
+
+    let holdTimer = null;
+    let heldOff = false; // true if this press just unchecked via long-press
+
+    const cancelHold = () => {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+      b.classList.remove("holding");
+    };
+
+    b.addEventListener("pointerdown", () => {
+      heldOff = false;
+      if (!marked.has(i)) return;
+      b.classList.add("holding");
+      holdTimer = setTimeout(() => {
+        cancelHold();
+        heldOff = true;
+        marked.delete(i);
+        if (navigator.vibrate) navigator.vibrate(30);
+        save();
+        render();
+      }, HOLD_MS);
+    });
+    ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, cancelHold));
+    b.addEventListener("contextmenu", e => e.preventDefault());
+
+    b.addEventListener("click", () => {
+      if (heldOff) { heldOff = false; return; }
+      if (marked.has(i)) {
+        // Quick tap on a checked square: don't uncheck, just remind.
+        b.classList.remove("nudge");
+        void b.offsetWidth;
+        b.classList.add("nudge");
+        flashHint();
+        return;
+      }
+      marked.add(i);
+      save();
+      render();
+    });
+    return b;
+  });
+
+  // Shrink each square's text until it fits, so long phrases work on phones.
+  function fitText() {
+    buttons.forEach(b => {
+      const span = b.querySelector("span");
+      if (!span) return;
+      const pad = parseFloat(getComputedStyle(b).paddingLeft) * 2;
+      const room = b.clientWidth - pad, roomH = b.clientHeight - pad;
+      let size = 15;
+      b.style.fontSize = size + "px";
+      b.classList.remove("breaky");
+      // Shrink for long words only down to 9px; past that, let the word wrap.
+      while (size > 9 && span.scrollWidth > room) {
+        size -= 0.5;
+        b.style.fontSize = size + "px";
+      }
+      if (span.scrollWidth > room) b.classList.add("breaky");
+      while (size > 7 && span.offsetHeight > roomH) {
+        size -= 0.5;
+        b.style.fontSize = size + "px";
+      }
+    });
+  }
+  window.addEventListener("resize", fitText);
+  if (document.fonts) document.fonts.ready.then(fitText);
+
   let prevWins = -1;
 
   function render() {
-    grid.innerHTML = "";
     const winning = LINES.filter(l => l.every(i => marked.has(i)));
     const winCells = new Set(winning.flat());
 
-    cells.forEach((text, i) => {
-      const b = document.createElement("button");
-      b.className = "cell";
-      if (text === null) {
-        b.classList.add("free");
-        b.textContent = FREE_TEXT;
-      } else {
-        b.textContent = text;
-        if (marked.has(i)) b.classList.add("marked");
-        b.addEventListener("click", () => toggle(i));
-      }
-      if (winCells.has(i)) b.classList.add("win");
-      grid.appendChild(b);
+    buttons.forEach((b, i) => {
+      if (cells[i] !== null) b.classList.toggle("marked", marked.has(i));
+      b.classList.toggle("win", winCells.has(i));
     });
 
     if (marked.size === 25) statusEl.textContent = "🏆 BLACKOUT!! 🏆";
@@ -201,12 +331,6 @@
 
     if (prevWins !== -1 && winning.length > prevWins) confetti();
     prevWins = winning.length;
-  }
-
-  function toggle(i) {
-    marked.has(i) ? marked.delete(i) : marked.add(i);
-    save();
-    render();
   }
 
   document.getElementById("reset").addEventListener("click", () => {
@@ -230,6 +354,7 @@
     }
   }
 
+  fitText();
   render();
 </script>
 </body>
