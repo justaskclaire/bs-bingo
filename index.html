@@ -234,7 +234,7 @@
     "“I'm autistic too, actually!”",
     "Cold catered food",
     // row 2
-    "Caree is over\u00ADstimulated",
+    "CAREE is over\u00ADstimulated",
     "Vaguely racist Mexican comment",
     "Barbara frowns at a sweet moment",
     "Checked Out Groom ™️",
@@ -246,19 +246,19 @@
     "Bride freaks out about scheduling",
     // row 4
     "Miss the champagne for brat duty",
-    "Drunk Brides\u00ADmaid",
+    "CAREE's people-pleasing relapse",
     "Brent talks shit about DIL's fam",
     "“Wait, one more picture!”",
     "Barbara hijacks convo to lecture",
     // row 5
     "The Young\u00ADman Eyeroll",
-    "Cost of something mentioned",
-    "Caree says “fuck” near an 80yo",
+    "CAREE resents her own martyrdom",
+    "CAREE says “fuck” near an 80yo",
     "Autism question → podcast factoid",
     "“We see the grandkids ALL the time!”",
   ];
   const FREE_TEXT = "PASSIVE AGGRES\u00ADSIVE FREE SPACE";
-  const STORAGE_KEY = "wedding-bingo-v1";
+  const STORAGE_KEY = "wedding-bingo-v2";
 
   const grid = document.getElementById("grid");
   const statusEl = document.getElementById("status");
@@ -403,7 +403,7 @@
     });
 
     if (marked.size === 25) statusEl.textContent = "🏆 BLACKOUT. You survived the wedding.";
-    else if (winning.length > 1) statusEl.textContent = `🍾 ${winning.length}× BINGO! Someone get Caree a refill.`;
+    else if (winning.length > 1) statusEl.textContent = `🍾 ${winning.length}× BINGO! Someone get CAREE a refill.`;
     else if (winning.length === 1) statusEl.textContent = "🥂 BINGO! Go find that champagne.";
     else statusEl.textContent = "";
 
