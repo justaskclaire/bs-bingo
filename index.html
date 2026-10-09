@@ -69,8 +69,8 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    hyphens: auto;
-    -webkit-hyphens: auto;
+    hyphens: manual; /* only break at the \u00AD marks in SQUARES */
+    -webkit-hyphens: manual;
     transition: transform 0.08s, background 0.15s;
     -webkit-tap-highlight-color: transparent;
     /* no text selection / iOS callout menu while long-pressing */
@@ -85,11 +85,13 @@
   .cell:active { transform: scale(0.95); }
   .cell.free { background: var(--free); font-weight: 800; cursor: default; }
   .cell.breaky { overflow-wrap: anywhere; }
+  .cell.nohyph { hyphens: none; -webkit-hyphens: none; }
   /* phones: tighter spacing and taller squares, so long phrases stay readable */
   @media (max-width: 520px) {
-    .card { padding: 6px; border-radius: 12px; }
-    .letters, .grid { gap: 4px; }
-    .cell { aspect-ratio: 4 / 5; padding: 3px; border-radius: 8px; }
+    body { padding-left: 10px; padding-right: 10px; }
+    .card { padding: 5px; border-radius: 12px; box-shadow: 4px 4px 0 var(--line); }
+    .letters, .grid { gap: 3px; }
+    .cell { aspect-ratio: 4 / 5; padding: 2px; border-width: 1.5px; border-radius: 7px; }
   }
   .cell.marked { background: var(--mark); color: var(--mark-ink); }
   .cell.win { box-shadow: inset 0 0 0 4px var(--win); }
@@ -289,24 +291,40 @@
   });
 
   // Shrink each square's text until it fits, so long phrases work on phones.
+  // Words are kept whole when possible; hyphenation is only used when keeping
+  // words whole would make the text noticeably smaller.
+  function fitSize(b, span, room, roomH) {
+    let size = 15;
+    const set = () => (b.style.fontSize = size + "px");
+    set();
+    // Shrink for long words only down to 9px; past that, the word has to break.
+    while (size > 9 && span.scrollWidth > room) { size -= 0.5; set(); }
+    const wordsFit = span.scrollWidth <= room;
+    if (!wordsFit) b.classList.add("breaky");
+    while (size > 7 && span.offsetHeight > roomH) { size -= 0.5; set(); }
+    return { size, wordsFit };
+  }
+
   function fitText() {
     buttons.forEach(b => {
       const span = b.querySelector("span");
       if (!span) return;
       const pad = parseFloat(getComputedStyle(b).paddingLeft) * 2;
       const room = b.clientWidth - pad, roomH = b.clientHeight - pad;
-      let size = 15;
-      b.style.fontSize = size + "px";
+
       b.classList.remove("breaky");
-      // Shrink for long words only down to 9px; past that, let the word wrap.
-      while (size > 9 && span.scrollWidth > room) {
-        size -= 0.5;
-        b.style.fontSize = size + "px";
-      }
-      if (span.scrollWidth > room) b.classList.add("breaky");
-      while (size > 7 && span.offsetHeight > roomH) {
-        size -= 0.5;
-        b.style.fontSize = size + "px";
+      b.classList.add("nohyph");
+      const whole = fitSize(b, span, room, roomH);
+
+      b.classList.remove("breaky", "nohyph");
+      const hyph = fitSize(b, span, room, roomH);
+
+      // Prefer whole words when they're still comfortably readable,
+      // or when hyphenating wouldn't make the text much bigger anyway.
+      if (whole.wordsFit && (whole.size >= 11.5 || (whole.size >= 10 && whole.size >= hyph.size - 1))) {
+        b.classList.remove("breaky");
+        b.classList.add("nohyph");
+        b.style.fontSize = whole.size + "px";
       }
     });
   }
